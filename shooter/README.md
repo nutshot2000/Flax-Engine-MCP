@@ -15,6 +15,7 @@ $env:FLAX_PROJECT='D:\FlaxProjects\BridgeGame'
 node shooter/push-scripts.js     # writes Source/*.cs via flax_write_script and compiles once
 node shooter/build.js            # materials, sounds, arena, player, drone prefab, spawn points, director, navmesh
 node shooter/build.js --rebuild  # replace an existing arena
+node shooter/landscape.js        # terrain hills and pines/bushes/rocks outside the walls (--rebuild to replace)
 node shooter/playtest.js 60      # bot plays for 60 s through the bridge; writes PLAYTEST.json and screenshots/
 ```
 

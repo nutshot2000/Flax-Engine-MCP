@@ -77,6 +77,14 @@ Use `flax_types` and `flax_api` to discover APIs. Generic targets support `actor
 
 `flax_find` searches actors by name, type and tag; `flax_scene_tree` accepts `id` and `depth` for large scenes; `flax_unload_scene` closes one scene.
 
+### Terrain, foliage and vertex paint
+
+These cover the editor's Terrain, Foliage and Paint tabs. Brushes take a world X/Z `center`, `radius`, optional `innerRadius` (ring) and `falloff` in centimetres. They are saved with the scene but are not editor undo steps.
+
+- `flax_terrain`: `create` (chunk size, patch grid, terrain material), `sculpt` (`raise`, `lower`, `flatten`, `set`, `smooth`, `noise`), `paint` (splat layers 0-7), `sample` (heights at world points) and `info`.
+- `flax_foliage`: `create`, `add_type` (one per model, with material, cull distance and FoliageType properties), `scatter` (raycasts onto surfaces in a disc or ring, with scale range, `heightScale`, `baseOffset`, slope limit, spacing, `alignToNormal` and `onlyOn`), `clear` and `info`.
+- `flax_vertex_paint`: `fill`, `gradient` along a local axis, and `clear`. Colours only show with a material that reads vertex colour.
+
 ### flax_exec
 
 For anything the dedicated tools do not reach, `flax_exec` compiles a C# snippet with the engine's bundled Roslyn and runs it on the editor main thread against every loaded engine, editor and game assembly. A body without `;` is an expression whose value is returned:
@@ -99,7 +107,7 @@ STOP persists across restarts and blocks bridge mutations until explicit resume.
 
 The plugin runs with the editor user's permissions. Generic API calls and generated C# are powerful; expose this server only to trusted local clients. No network listener or model API key is required.
 
-Terrain sculpting, navmesh building, physics queries, splines, UI, CSG and about 25 actor types are exercised by the lab suite (see [lab/COVERAGE.md](lab/COVERAGE.md)). Animation graphs, material graphs, particle authoring and packaged builds are reachable only through generic calls and `flax_exec`, without dedicated tests yet. The installed test machine reported missing optional Android/Web/Vulkan/ARM64 components; Windows x64 C# compilation worked.
+Terrain sculpting and painting, foliage, vertex painting, navmesh building, physics queries, splines, UI, CSG and about 25 actor types are exercised by the lab suite (see [lab/COVERAGE.md](lab/COVERAGE.md)). Material graphs (including terrain materials), animation graphs, particle authoring and packaged builds are reachable only through generic calls and `flax_exec`, without dedicated tests yet. The installed test machine reported missing optional Android/Web/Vulkan/ARM64 components; Windows x64 C# compilation worked.
 
 ## Bridge lab
 

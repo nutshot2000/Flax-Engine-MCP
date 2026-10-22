@@ -13,7 +13,7 @@ namespace FlaxMcp
     public partial class Bridge : EditorPlugin
     {
         public const string Version = "0.4.0";
-        static readonly string[] Capabilities = { "ordered-queue", "asset-path-prefixes", "undo-set", "ref-out-call", "generic-call", "new-objects", "exec", "find", "scene-tree-depth", "unload-scene" };
+        static readonly string[] Capabilities = { "ordered-queue", "asset-path-prefixes", "undo-set", "ref-out-call", "generic-call", "new-objects", "exec", "find", "scene-tree-depth", "unload-scene", "terrain", "foliage", "vertex-paint" };
         string root;
         DateTime heartbeat;
         bool stopped;
@@ -210,6 +210,7 @@ namespace FlaxMcp
             }
             if (FlaxEditor.Editor.IsPlayMode) throw new Exception("Stop play before editing persistent scene objects");
             if (new[] { "batch", "material_create", "prefab_create", "prefab_spawn", "import", "close_scenes", "undo", "redo" }.Contains(op)) return Extended(op, a);
+            if (op == "terrain" || op == "foliage" || op == "vertex_paint") return Landscape(op, a);
             switch (op)
             {
                 case "compile": FlaxEditor.ScriptsBuilder.Compile(); return new { requested = true };
