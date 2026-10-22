@@ -1,0 +1,66 @@
+{
+  "utc": "2026-10-22T16:36:58.625Z",
+  "seconds": 61,
+  "final": {
+    "Phase": "playing",
+    "Wave": 5,
+    "Score": 8000,
+    "Kills": 28,
+    "EnemiesAlive": 2,
+    "PendingSpawns": 10,
+    "PlayerHp": 20,
+    "PlayerPosition": {
+      "X": 0,
+      "Y": 89.99999,
+      "Z": -1500
+    },
+    "SoundEvents": 357,
+    "ShotsFired": 207,
+    "Hits": 84
+  },
+  "checks": {
+    "run starts": {
+      "passed": true,
+      "detail": "playing"
+    },
+    "wave spawns drones from prefab": {
+      "passed": true,
+      "detail": "1 drones in wave 1"
+    },
+    "rifle hits drones": {
+      "passed": true,
+      "detail": "3/24 hits"
+    },
+    "magazine empties and reloads": {
+      "passed": true,
+      "detail": "42 shots fired"
+    },
+    "drones die and score": {
+      "passed": true,
+      "detail": "1 kills, 100 points"
+    },
+    "waves advance": {
+      "passed": true,
+      "detail": "wave 2"
+    },
+    "drones damage the player": {
+      "passed": true,
+      "detail": "hp 84"
+    },
+    "sounds play": {
+      "passed": true,
+      "detail": "1 events"
+    },
+    "enemy uses navmesh path": {
+      "passed": true,
+      "detail": "5 points"
+    },
+    "drones navigate toward the player": {
+      "passed": true,
+      "detail": "moved 200 cm"
+    },
+    "combat": {
+      "passed": true
+    }
+  }
+}

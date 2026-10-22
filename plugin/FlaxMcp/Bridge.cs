@@ -218,7 +218,9 @@ namespace FlaxMcp
                     if (File.Exists(path)) throw new Exception("Scene already exists");
                     Editor.Scene.CreateSceneFile(path);
                     var scene = Level.LoadSceneFromBytes(File.ReadAllBytes(path));
-                    return new { id = scene.ID, path };
+                    // New scenes come with a default sun, sky, sky light, floor and camera.
+                    if (a.Value<bool>("empty")) foreach (var child in scene.Children) FlaxEngine.Object.DestroyNow(child);
+                    return new { id = scene.ID, path, children = scene.Children.Select(c => Describe(c, 0)).ToArray() };
                 case "save":
                     foreach (var s in Level.Scenes) if (Level.SaveScene(s)) throw new Exception("Scene save failed: " + s.Name);
                     foreach (var s in Level.Scenes) if (Editor.Scene.GetActorNode(s) is FlaxEditor.SceneGraph.Actors.SceneNode node) node.IsEdited = false;
@@ -248,7 +250,11 @@ namespace FlaxMcp
                     actor.Name = a.Value<string>("name") ?? type.Name;
                     if (a["properties"] is JObject props) SetMembers(actor, props, false);
                     var parent = a["parent"] == null ? Level.Scenes.FirstOrDefault() ?? throw new Exception("No scene loaded") : Actor(a, "parent");
+                    // Unparented, the transform set so far is relative to the parent-to-be. Spawn keeps world transforms,
+                    // which would cancel a scaled parent's scale on the child, so restore it as the local transform.
+                    var local = actor.LocalTransform;
                     Editor.SceneEditing.Spawn(actor, parent);
+                    actor.LocalTransform = local;
                     // The editor applies spawn defaults for some types (e.g. TextRender text), so apply requested values again.
                     if (a["properties"] is JObject after) SetMembers(actor, after, false);
                     return Describe(actor, 0);

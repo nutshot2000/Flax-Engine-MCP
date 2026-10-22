@@ -28,13 +28,15 @@ async function freshScene() {
   if (status.play) { await call('stop_play'); await until(async () => !(await call('status')).play, { what: 'play to stop' }); }
   if (status.stopped) await call('resume_control');
   for (const scene of (await call('status')).scenes) await call('unload_scene', { id: scene.id, discard: true });
-  const dir = path.join(project, 'Content', 'Lab');
-  await fs.rm(dir, { recursive: true, force: true });
-  const created = await call('create_scene', { path: `Lab/Run_${Date.now()}.scene` });
+  // Earlier runs' assets may still be loaded (and locked) by the editor, so each run writes to its own folder and old ones are removed when possible.
+  const root = path.join(project, 'Content', 'Lab');
+  for (const old of await fs.readdir(root).catch(() => [])) await fs.rm(path.join(root, old), { recursive: true, force: true }).catch(() => {});
+  const created = await call('create_scene', { path: `${process.env.LAB_DIR}/Run.scene` });
   lab.sceneId = created.id;
   return created;
 }
 
+process.env.LAB_DIR = `Lab/R${Date.now()}`;
 const suites = [];
 for (const file of (await fs.readdir(path.join(here, 'suites'))).filter(f => f.endsWith('.js')).sort())
   suites.push(await import(new URL(`./suites/${file}`, import.meta.url)));

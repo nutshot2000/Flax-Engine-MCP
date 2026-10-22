@@ -25,6 +25,9 @@ export const tests = [
   { name: 'unsafe pointer APIs work through exec', run: async ({ exec }) => {
     assert.equal(await exec('unsafe { int v = 41; int* p = &v; *p += 1; return v; }'), 42);
   } },
+  { name: 'interpolated-string expression', run: async ({ exec }) => {
+    assert.equal(await exec('$"{1 + 1} scenes={Level.ScenesCount > 0}"'), '2 scenes=True');
+  } },
   { name: 'custom usings', run: async ({ call }) => {
     const r = await call('exec', { code: 'new StringBuilder("ok").ToString()', usings: ['System.Text'] });
     assert.equal(r.value, 'ok');

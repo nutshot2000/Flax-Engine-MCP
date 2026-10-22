@@ -35,11 +35,11 @@ command('status', 'Get live editor state, open scenes, engine/project content fo
 command('scene_tree', 'Read scene hierarchy, actor IDs, transforms and attached scripts. id roots the tree at one actor; depth limits nesting (childCount is always reported).', {id:id.optional(),depth:z.number().int().min(0).optional()});
 command('find', 'Find actors in loaded scenes by case-insensitive name substring, type (including subclasses) and/or tag.', {name:z.string().optional(),type:z.string().optional(),tag:z.string().optional(),limit:z.number().int().min(1).max(1000).default(100)});
 command('inspect', 'Discover public actor or script properties, their types and current values.', { id, script: z.string().optional() });
-command('create_scene', 'Create and open a new default scene. Refuses overwrite. Path relative to Content.', { path: z.string().endsWith('.scene') });
+command('create_scene', 'Create and open a new scene. Refuses overwrite. Path relative to Content. Default scenes include a sun, sky, sky light, floor and camera (returned in children); empty=true removes them.', { path: z.string().endsWith('.scene'), empty: z.boolean().default(false) });
 command('open_scene', 'Load an existing scene additively. Inspect tree first to avoid loading the same scene twice.', {path:z.string().endsWith('.scene')});
 command('unload_scene', 'Unload one loaded scene by ID. Refuses unsaved changes unless discard=true.', {id,discard:z.boolean().default(false)});
 command('material', 'Assign an existing material asset to a StaticModel material slot (undoable).', {id,path:z.string(),slot:z.number().int().min(0).default(0)});
-command('spawn', 'Create an actor using its fully qualified type, e.g. FlaxEngine.StaticModel. Properties use exact C# names. Vectors use {X,Y,Z}; asset references use asset paths such as "$engine/Editor/Primitives/Cube.flax".', { type: z.string(), name: z.string(), parent: id.optional(), properties: properties.optional() });
+command('spawn', 'Create an actor using its fully qualified type, e.g. FlaxEngine.StaticModel. Properties use exact C# names. Vectors use {X,Y,Z}; asset references use asset paths such as "$engine/Editor/Primitives/Cube.flax". With a parent, the child starts at the parent\'s origin and inherits its scale/rotation; LocalPosition/LocalScale are parent-relative, Position/Scale are world-space.', { type: z.string(), name: z.string(), parent: id.optional(), properties: properties.optional() });
 command('set', 'Set actor or attached script properties as one undoable edit. Inspect first. Changes are not automatically saved.', { id, script: z.string().optional(), properties });
 command('add_script', 'Attach an already compiled Script type to an actor.', { id, type: z.string(), properties: properties.optional() });
 command('delete', 'Delete an actor and its children using editor undo support.', { id });
@@ -63,13 +63,13 @@ tool('screenshot','Capture scene or game viewport and return image; game view in
   for(let i=0;i<100;i++) { try { const data=await fs.readFile(r.result.path); if(data.length>100 && data.subarray(-8,-4).toString()==='IEND') return {content:[{type:'image',mimeType:'image/png',data:data.toString('base64')}]}; } catch {} await delay(100); }
   return text(r);
 });
-tool('write_script','Create/update C# gameplay source beneath Source/Game. Existing files require overwrite=true and are backed up. Flax recompiles automatically; inspect logs afterwards.',{path:z.string(),source:z.string().max(200000),overwrite:z.boolean().default(false)},async a=>{
+tool('write_script','Create/update C# gameplay source beneath Source/Game. Existing files require overwrite=true and are backed up. Requests compilation unless compile=false (use that while writing several files, then call flax_compile once); inspect status/logs afterwards.',{path:z.string(),source:z.string().max(200000),overwrite:z.boolean().default(false),compile:z.boolean().default(true)},async a=>{
   const state=await request('status'); if(state.result.stopped || state.result.play) throw Error('Stop play and ensure bridge control is enabled before writing scripts');
   const dest=sourcePath(a.path); await fs.mkdir(path.dirname(dest),{recursive:true});
   const exists=await fs.stat(dest).catch(()=>null);
   if(exists && !a.overwrite) throw Error('File exists; use overwrite=true');
   if(exists) await fs.copyFile(dest,dest+'.backup-'+Date.now());
-  await fs.writeFile(dest,a.source); await request('compile'); return text({written:dest,recompilation:'requested; check logs and status'});
+  await fs.writeFile(dest,a.source); if(a.compile) await request('compile'); return text({written:dest,recompilation:a.compile?'requested; check logs and status':'not requested; call flax_compile'});
 });
 tool('read_script','Read C# gameplay source beneath Source/Game.',{path:z.string()},async a=>text({source:await fs.readFile(sourcePath(a.path),'utf8')}));
 tool('assets','List project content files. Use relative folder and optional case-insensitive name filter.',{filter:z.string().default('')},async a=>{
