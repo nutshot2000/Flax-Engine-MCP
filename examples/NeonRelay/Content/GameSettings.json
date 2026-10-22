@@ -1,0 +1,11 @@
+{
+  "ID": "863380a9f8d84db8bd3573e222aabb6a",
+  "TypeName": "FlaxEditor.Content.Settings.GameSettings",
+  "EngineBuild": 7012,
+  "Data": {
+    "ProductName": "Neon Relay",
+    "CompanyName": "Local Games",
+    "FirstScene": "3450c93a4c3c65d76cc1c6bd34c1d23e",
+    "NoSplashScreen": true
+  }
+}

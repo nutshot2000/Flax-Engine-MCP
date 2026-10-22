@@ -1,0 +1,41 @@
+{
+  "utc": "2026-10-21T20:42:19.656Z",
+  "checks": [
+    {
+      "check": "MCP tool discovery",
+      "count": 27
+    },
+    {
+      "check": "spawn, material, transform and readback",
+      "passed": true
+    },
+    {
+      "check": "write, compile and attach C# script",
+      "passed": true
+    },
+    {
+      "check": "play mode executes generated gameplay script",
+      "position": [
+        27.16664,
+        100,
+        0
+      ]
+    },
+    {
+      "check": "pause freezes gameplay",
+      "passed": true
+    },
+    {
+      "check": "STOP blocks edits",
+      "passed": true
+    },
+    {
+      "check": "delete actor verified",
+      "passed": true
+    },
+    {
+      "check": "viewport screenshot",
+      "passed": true
+    }
+  ]
+}

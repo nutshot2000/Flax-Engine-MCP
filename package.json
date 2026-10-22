@@ -1,0 +1,15 @@
+{
+  "name": "flax-mcp",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/*.test.js",
+    "smoke": "node tests/live.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  }
+}

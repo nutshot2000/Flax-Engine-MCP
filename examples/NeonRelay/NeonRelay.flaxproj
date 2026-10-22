@@ -1,0 +1,12 @@
+{
+  "Name": "NeonRelay",
+  "EditorTarget": "GameEditorTarget",
+  "GameTarget": "GameTarget",
+  "MinEngineVersion": "1.13",
+  "References": [
+    {
+      "Name": "$(EnginePath)/Flax.flaxproj"
+    }
+  ],
+  "Version": "1.0"
+}

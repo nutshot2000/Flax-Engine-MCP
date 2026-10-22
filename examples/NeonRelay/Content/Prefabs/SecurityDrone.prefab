@@ -1,0 +1,31 @@
+{
+	"ID": "68bfdf7e4cda4831e27deb8f70cb6c7b",
+	"TypeName": "FlaxEngine.Prefab",
+	"EngineBuild": 7012,
+	"Data": [
+	{
+		"ID": "194a993543b530ea3562198d97ee56f4",
+		"TypeName": "FlaxEngine.StaticModel",
+		"ParentID": "00000000000000000000000000000000",
+		"Name": "Drone_0",
+		"Transform": {
+			"Translation": {
+				"X": -600.0,
+				"Y": 100.0,
+				"Z": -200.0
+			}
+		},
+		"Model": "dd86c4724bf734c4959d23b3c74faa05",
+		"Buffer": {
+			"Entries": [
+				{
+					"Material": "b17a3ebf411997af16f0de9c0144a222",
+					"ShadowsMode": 3,
+					"Visible": true,
+					"ReceiveDecals": true
+				}
+			]
+		}
+	}
+]
+}
