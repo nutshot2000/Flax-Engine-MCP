@@ -13,8 +13,8 @@ try {
  assert.equal((await call('status')).play,false);
  const tree=await call('scene_tree'); assert(tree.length>0);
  for(const old of tree[0].children.filter(x=>x.name==='MCP Test Cube')) await call('delete',{id:old.id});
- const model=await call('spawn',{type:'FlaxEngine.StaticModel',name:'MCP Test Cube',properties:{Position:{X:0,Y:100,Z:0},Model:'D:/Program Files (x86)/Flax/Flax_1.13/Content/Editor/Primitives/Cube.flax'}});
- await call('material',{id:model.id,path:'D:/Program Files (x86)/Flax/Flax_1.13/Content/Engine/WhiteMaterial.flax'});
+ const model=await call('spawn',{type:'FlaxEngine.StaticModel',name:'MCP Test Cube',properties:{Position:{X:0,Y:100,Z:0},Model:'$engine/Editor/Primitives/Cube.flax'}});
+ await call('material',{id:model.id,path:'$engine/Engine/WhiteMaterial.flax'});
  await call('set',{id:model.id,properties:{Scale:{X:1.2,Y:1.2,Z:1.2}}});
  const updated=(await call('scene_tree'))[0].children.find(x=>x.id===model.id); assert.equal(updated.scale[0],1.2); checks.push({check:'spawn, material, transform and readback',passed:true});
  const script='using FlaxEngine; namespace Game { public class BridgeMotion : Script { public float Speed = 90; public override void OnUpdate() { Actor.LocalEulerAngles += new Vector3(0,Speed * Time.DeltaTime,0); Actor.Position += new Vector3(Time.DeltaTime * 10,0,0); } } }';

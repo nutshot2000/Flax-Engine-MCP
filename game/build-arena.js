@@ -2,8 +2,9 @@ import {connect} from '../tests/client.js';
 import {promises as fs} from 'node:fs';
 import path from 'node:path';
 const {client,call}=await connect();
-const base='D:/FlaxProjects/NeonRelay/Content/';
-const engine='D:/Program Files (x86)/Flax/Flax_1.13/Content/';
+// Asset paths are relative to project Content; $engine/ addresses the engine's Content folder.
+const base='';
+const engine='$engine/';
 const vec=(X,Y,Z)=>({X,Y,Z});
 const ids={};
 async function spawn(type,name,position,scale,extra={},parent){return call('spawn',{type:'FlaxEngine.'+type,name,parent,properties:{Position:vec(...position),...(scale?{Scale:vec(...scale)}:{}),...extra}});}

@@ -5,8 +5,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { request, receipt, project, queue, readJson, sourcePath, delay } from './bridge.js';
-const server = new McpServer({ name: 'flax-mcp', version: '0.3.0' }, { instructions: 'Control Flax Editor. Inspect status/tree before edits. Positions in centimeters. Stop play before persistent edits. Save explicitly. Play and screenshot are asynchronous: observe completion. Never repeat an uncertain mutation; inspect its receipt. Scripts execute locally with editor privileges. STOP requires explicit resume_control. Use flax_inspect to discover property names and types.' });
+import { request, receipt, project, queue, readJson, sourcePath, delay, editorPath } from './bridge.js';
+const server = new McpServer({ name: 'flax-mcp', version: '0.4.0' }, { instructions: 'Control Flax Editor. Inspect status/tree before edits. Positions in centimeters. Stop play before persistent edits. Save explicitly. Play and screenshot are asynchronous: observe completion. Never repeat an uncertain mutation; inspect its receipt. Asset paths accept "$engine/..." (engine Content), "$content/..." or a path relative to project Content. Use flax_api to discover members; flax_call handles ref/out parameters and generic methods (typeArguments). For anything the dedicated tools do not cover, flax_exec runs a C# snippet inside the editor with full engine and editor access. Scripts execute locally with editor privileges. STOP requires explicit resume_control.' });
 const text = result => ({ content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] });
 function tool(name, description, schema, fn) {
   server.registerTool('flax_' + name, { description, inputSchema: schema }, async args => {
@@ -16,28 +16,31 @@ function tool(name, description, schema, fn) {
 function command(name, description, schema = {}, op = name) { tool(name, description, schema, async a => text(await request(op, a))); }
 const id = z.string().uuid();
 const properties = z.record(z.unknown());
-const target = z.object({kind:z.enum(['actor','script','asset','editor','static']),id:z.string().optional(),type:z.string().optional(),asset:z.string().optional(),member:z.string().optional()});
-command('types','Discover public Flax and gameplay types by name.',{filter:z.string().default('')});
-command('api','Discover exact public properties, fields and method signatures for any loaded type.',{type:z.string()});
-command('get','Read public fields/properties of an actor, script, asset, editor module or static type. member traverses dot-separated public members.',{target,members:z.array(z.string()).optional()});
-command('object_set','Set public members on an engine/editor object. Use api first. Object values can use {$ref: target}; boxed values use {$type: fullType, value: ...}.', {target,properties,runtime:z.boolean().default(false)});
-command('call','Invoke a public engine/editor/game method. Use api to discover exact signatures; specify parameterTypes for overloaded methods. Mutating and trusted-local only. No automatic retry.',{target,method:z.string(),args:z.array(z.unknown()).default([]),parameterTypes:z.array(z.string()).optional()});
+const target = z.object({kind:z.enum(['actor','script','object','asset','editor','static']),id:z.string().optional().describe('actor/script/object ID'),type:z.string().optional().describe('script type or static type'),asset:z.string().optional(),member:z.string().optional().describe('dot-separated public member path')});
+command('types','Discover public types by name. Engine, editor, game and plugin assemblies by default; all=true includes System/Microsoft.',{filter:z.string().default(''),all:z.boolean().default(false),limit:z.number().int().min(1).max(2000).default(200)});
+command('api','Discover exact public constructors, properties, fields and method signatures (including ref/out and generic parameters) for any loaded type. member filters by name.',{type:z.string(),member:z.string().optional()});
+command('get','Read public fields/properties of an actor, script, object (by ID), asset, editor or static type. member traverses dot-separated public members.',{target,members:z.array(z.string()).optional()});
+command('object_set','Set public members on any engine/editor object, recorded in editor undo for scene objects. Use api first. Values: {$ref: target}, {$type: fullType, value}, {$new: fullType, args: []}.', {target,properties,runtime:z.boolean().default(false)});
+command('call','Invoke a public method. ref/out results are returned in "out". Generic methods need typeArguments. Specify parameterTypes for overloads exactly as flax_api reports them. Mutating and trusted-local only. No automatic retry.',{target,method:z.string(),args:z.array(z.unknown()).default([]),parameterTypes:z.array(z.string()).optional(),typeArguments:z.array(z.string()).optional()});
+tool('exec','Compile and run a C# snippet on the editor main thread with access to all loaded engine, editor and game assemblies. A body without ";" is treated as an expression and its value returned; otherwise use return. ctx offers Log(x), Find(id), Asset<T>(path), Edit(sceneObject, action) for undoable edits, Scene and Editor. Trusted-local only.',{code:z.string().max(100000),usings:z.array(z.string()).optional(),timeoutSeconds:z.number().min(1).max(120).default(30)},async a=>text(await request('exec',{code:a.code,usings:a.usings},a.timeoutSeconds*1000)));
 command('batch','Execute up to 128 scene edits in order. Stops on first error and reports partial results; NOT atomic. Allowed ops: spawn,set,material,delete,select,add_script.',{operations:z.array(z.object({op:z.string(),args:properties})).max(128)});
-command('material_create','Create a persistent material instance. Box colors as {$type:"FlaxEngine.Color",value:{R:1,G:0,B:0,A:1}}.',{path:z.string(),base:z.string().optional(),parameters:properties});
+command('material_create','Create a persistent material instance from a base material (default $engine/Engine/SingleColorMaterial.flax). Box colors as {$type:"FlaxEngine.Color",value:{R:1,G:0,B:0,A:1}}.',{path:z.string(),base:z.string().optional(),parameters:properties.default({})});
 command('prefab_create','Save actor hierarchy as prefab; refuses overwrite.',{id,path:z.string()});
 command('prefab_spawn','Instantiate project prefab into first loaded scene.',{path:z.string(),properties:properties.optional()});
 command('import','Queue asset import from a local source file into Content subfolder. Poll editor ContentImporting.IsImporting and inspect assets/logs.',{source:z.string(),folder:z.string().default('Imported')});
 command('close_scenes','Close all scenes; refuses unsaved changes.');
 command('undo','Undo last editor undoable operation.');
 command('redo','Redo last editor undoable operation.');
-command('status', 'Get live editor state, open scenes and STOP state.');
-command('scene_tree', 'Read scene hierarchy, actor IDs, transforms and attached scripts.');
+command('status', 'Get live editor state, open scenes, engine/project content folders, capabilities and STOP state.');
+command('scene_tree', 'Read scene hierarchy, actor IDs, transforms and attached scripts. id roots the tree at one actor; depth limits nesting (childCount is always reported).', {id:id.optional(),depth:z.number().int().min(0).optional()});
+command('find', 'Find actors in loaded scenes by case-insensitive name substring, type (including subclasses) and/or tag.', {name:z.string().optional(),type:z.string().optional(),tag:z.string().optional(),limit:z.number().int().min(1).max(1000).default(100)});
 command('inspect', 'Discover public actor or script properties, their types and current values.', { id, script: z.string().optional() });
 command('create_scene', 'Create and open a new default scene. Refuses overwrite. Path relative to Content.', { path: z.string().endsWith('.scene') });
 command('open_scene', 'Load an existing scene additively. Inspect tree first to avoid loading the same scene twice.', {path:z.string().endsWith('.scene')});
-command('material', 'Assign an existing material asset to a StaticModel material slot.', {id,path:z.string(),slot:z.number().int().min(0).default(0)});
-command('spawn', 'Create an actor using its fully qualified type, e.g. FlaxEngine.StaticModel. Properties use exact C# names. Vectors use {X,Y,Z}; asset references use asset paths.', { type: z.string(), name: z.string(), parent: id.optional(), properties: properties.optional() });
-command('set', 'Set actor or attached script properties. Inspect first. Changes are not automatically saved.', { id, script: z.string().optional(), properties });
+command('unload_scene', 'Unload one loaded scene by ID. Refuses unsaved changes unless discard=true.', {id,discard:z.boolean().default(false)});
+command('material', 'Assign an existing material asset to a StaticModel material slot (undoable).', {id,path:z.string(),slot:z.number().int().min(0).default(0)});
+command('spawn', 'Create an actor using its fully qualified type, e.g. FlaxEngine.StaticModel. Properties use exact C# names. Vectors use {X,Y,Z}; asset references use asset paths such as "$engine/Editor/Primitives/Cube.flax".', { type: z.string(), name: z.string(), parent: id.optional(), properties: properties.optional() });
+command('set', 'Set actor or attached script properties as one undoable edit. Inspect first. Changes are not automatically saved.', { id, script: z.string().optional(), properties });
 command('add_script', 'Attach an already compiled Script type to an actor.', { id, type: z.string(), properties: properties.optional() });
 command('delete', 'Delete an actor and its children using editor undo support.', { id });
 command('select', 'Select actor in the editor.', { id });
@@ -72,11 +75,13 @@ tool('read_script','Read C# gameplay source beneath Source/Game.',{path:z.string
 tool('assets','List project content files. Use relative folder and optional case-insensitive name filter.',{filter:z.string().default('')},async a=>{
  const base=path.join(project,'Content'); const files=await fs.readdir(base,{recursive:true}); return text({files:files.filter(f=>f.toLowerCase().includes(a.filter.toLowerCase())).slice(0,1000)});
 });
-tool('logs','Read latest editor log, including script compilation failures.',{lines:z.number().int().min(1).max(500).default(80)},async a=>{
+tool('logs','Read latest editor log, including script compilation failures.',{lines:z.number().int().min(1).max(500).default(80),filter:z.string().optional().describe('case-insensitive substring; applied before taking the last lines')},async a=>{
   const dir=path.join(project,'Logs'); const files=await fs.readdir(dir);
   const stats=await Promise.all(files.map(async f=>({f,stat:await fs.stat(path.join(dir,f))})));
   stats.sort((a,b)=>b.stat.mtimeMs-a.stat.mtimeMs);
-  const file=path.join(dir,stats[0].f); const bytes=await fs.readFile(file); const decoded=bytes.toString(bytes[0]===255&&bytes[1]===254?'utf16le':'utf8').replace(/\0/g,''); return text({file,text:decoded.split('\n').slice(-a.lines).join('\n')});
+  const file=path.join(dir,stats[0].f); const bytes=await fs.readFile(file); const decoded=bytes.toString(bytes[0]===255&&bytes[1]===254?'utf16le':'utf8').replace(/\0/g,'');
+  let lines=decoded.split('\n'); if(a.filter) lines=lines.filter(l=>l.toLowerCase().includes(a.filter.toLowerCase()));
+  return text({file,text:lines.slice(-a.lines).join('\n')});
 });
 tool('launch','Launch configured Flax project in the editor.',{},async()=>{
   const existing=await readJson(path.join(queue,'status.json')).catch(()=>null);
@@ -84,8 +89,7 @@ tool('launch','Launch configured Flax project in the editor.',{},async()=>{
   const pending=await readJson(path.join(project,'Cache','mcp-launch.json')).catch(()=>null);
   for(const pid of [existing?.processId,pending?.pid].filter(Boolean)){try{process.kill(pid,0);return text({alreadyRunning:true,pid,project,bridgeReady:false});}catch{}}
   const files=await fs.readdir(project); const proj=files.find(f=>f.endsWith('.flaxproj')); if(!proj) throw Error('No .flaxproj found');
-  const editor=process.env.FLAX_EDITOR || 'D:/Program Files (x86)/Flax/Flax_1.13/Binaries/Editor/Win64/Release/FlaxEditor.exe';
-  const child=spawn(editor,['-project',path.join(project,proj)],{detached:true,stdio:'ignore'}); child.unref();
+  const child=spawn(editorPath(),['-project',path.join(project,proj)],{detached:true,stdio:'ignore'}); child.unref();
   await fs.mkdir(path.join(project,'Cache'),{recursive:true});await fs.writeFile(path.join(project,'Cache','mcp-launch.json'),JSON.stringify({pid:child.pid,utc:new Date().toISOString()}));
   return text({launched:true,pid:child.pid});
 });

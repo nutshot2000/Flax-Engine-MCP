@@ -1,9 +1,15 @@
 param(
     [Parameter(Mandatory=$true)][string]$ProjectDirectory,
-    [string]$EngineDirectory = 'D:\Program Files (x86)\Flax\Flax_1.13',
+    [string]$EngineDirectory = $env:FLAX_ENGINE,
     [switch]$Create
 )
 $ErrorActionPreference='Stop'
+if(!$EngineDirectory) {
+    # Engines registered with the Flax Launcher.
+    $versions=Join-Path $env:APPDATA 'Flax\Versions.txt'
+    if(Test-Path -LiteralPath $versions) { $EngineDirectory=Get-Content -LiteralPath $versions | Where-Object { $_ -and (Test-Path -LiteralPath (Join-Path $_ 'Binaries\Tools\Flax.Build.exe')) } | Select-Object -First 1 }
+    if(!$EngineDirectory) { throw 'Flax engine not found. Pass -EngineDirectory or set FLAX_ENGINE.' }
+}
 $projectPath=[IO.Path]::GetFullPath($ProjectDirectory)
 if($Create) {
     if(Test-Path -LiteralPath $projectPath) { throw 'Create requires a new directory.' }

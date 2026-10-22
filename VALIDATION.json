@@ -1,9 +1,9 @@
 {
-  "utc": "2026-10-21T20:42:19.656Z",
+  "utc": "2026-10-22T16:19:55.812Z",
   "checks": [
     {
       "check": "MCP tool discovery",
-      "count": 27
+      "count": 45
     },
     {
       "check": "spawn, material, transform and readback",
@@ -16,7 +16,7 @@
     {
       "check": "play mode executes generated gameplay script",
       "position": [
-        27.16664,
+        27.333315,
         100,
         0
       ]

@@ -17,3 +17,4 @@ game/scene-ids.json
 
 *.Gen.cs
 **/Properties/launchSettings.json
+lab/results/
